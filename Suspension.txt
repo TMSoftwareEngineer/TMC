@@ -1,0 +1,46 @@
+% Simulink model for a quarter-car suspension system
+
+% Define parameters
+m_car = 1000;       % Car mass (kg)
+m_wheel = 20;       % Wheel mass (kg)
+k_spring = 20000;   % Spring constant (N/m)
+c_damper = 1000;    % Damping coefficient (Ns/m)
+road_profile = 0.1; % Road disturbance amplitude (m)
+
+% Create a new Simulink model
+model_name = 'CarSuspensionModel';
+open_system(new_system(model_name));
+
+% Add blocks to the model
+add_block('simscape/Utilities/Solver Configuration', [model_name, '/Solver Configuration']);
+add_block('simscape/Utilities/Foundation', [model_name, '/Foundation']);
+add_block('simscape/Utilities/Domain', [model_name, '/Foundation/Domain']);
+
+% Create the quarter-car model
+add_block('simscape/Simscape Multibody/Foundation/Bodies & Frames/Body', [model_name, '/Quarter Car']);
+add_block('simscape/Simscape Multibody/Foundation/Connections/Solver Configuration', [model_name, '/Solver Configuration']);
+add_block('simscape/Simscape Multibody/Foundation/Connections/Joint', [model_name, '/Joint']);
+
+% Connect blocks in the model
+add_line(model_name, 'Solver Configuration/1', 'Foundation/1');
+add_line(model_name, 'Foundation/2', 'Quarter Car/1');
+add_line(model_name, 'Quarter Car/2', 'Joint/1');
+
+% Set parameters for quarter-car suspension
+set_param([model_name, '/Quarter Car'], 'Mass', num2str(m_car));
+set_param([model_name, '/Joint'], 'Mass', num2str(m_wheel));
+set_param([model_name, '/Joint'], 'Spring Constant', num2str(k_spring));
+set_param([model_name, '/Joint'], 'Damping Coefficient', num2str(c_damper));
+
+% Add a road disturbance block
+add_block('simscape/Utilities/Signal Builder', [model_name, '/Road Disturbance']);
+set_param([model_name, '/Road Disturbance'], 'Amplitude', num2str(road_profile));
+
+% Connect the road disturbance block to the quarter-car joint
+add_block('simscape/Simscape Multibody/Foundation/Connections/Force', [model_name, '/Force']);
+add_line(model_name, 'Road Disturbance/1', 'Force/1');
+add_line(model_name, 'Force/2', 'Joint/2');
+
+% Save and open the model
+save_system(model_name);
+open_system(model_name);
